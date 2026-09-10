@@ -311,7 +311,10 @@
         laliga: { espn: 'esp.1', icon: "🇪🇸", name: { ru: "Испанская Ла Лига", kk: "Испания Ла Лигасы", en: "Spanish La Liga" }, shortName: { ru: "Ла Лига", kk: "Ла Лига", en: "La Liga" } },
         bundesliga: { espn: 'ger.1', icon: "🇩🇪", name: { ru: "Немецкая Бундеслига", kk: "Германия Бундеслигасы", en: "German Bundesliga" }, shortName: { ru: "Бундеслига", kk: "Бундеслига", en: "Bundesliga" } },
         seriea: { espn: 'ita.1', icon: "🇮🇹", name: { ru: "Итальянская Серия A", kk: "Италия Сериясы A", en: "Italian Serie A" }, shortName: { ru: "Серия A", kk: "Серия A", en: "Serie A" } },
-        ligue1: { espn: 'fra.1', icon: "🇫🇷", name: { ru: "Французская Лига 1", kk: "Франция Лига 1", en: "French Ligue 1" }, shortName: { ru: "Лига 1", kk: "Лига 1", en: "Ligue 1" } }
+        ligue1: { espn: 'fra.1', icon: "🇫🇷", name: { ru: "Французская Лига 1", kk: "Франция Лига 1", en: "French Ligue 1" }, shortName: { ru: "Лига 1", kk: "Лига 1", en: "Ligue 1" } },
+        eredivisie: { espn: 'ned.1', icon: "🇳🇱", name: { ru: "Голландская Эредивизи", kk: "Нидерланды Эредивизиесі", en: "Dutch Eredivisie" }, shortName: { ru: "Эредивизи", kk: "Эредивизи", en: "Eredivisie" } },
+        kpl: { source: 'thesportsdb-league', tsdbId: 4649, icon: "🇰🇿", name: { ru: "Премьер-лига Казахстана", kk: "Қазақстан Премьер-лигасы", en: "Kazakhstan Premier League" }, shortName: { ru: "КПЛ", kk: "ҚПЛ", en: "KPL" } },
+        natkaz: { source: 'thesportsdb-team', icon: "🦅", name: { ru: "Сборная Казахстана", kk: "Қазақстан құрамасы", en: "Kazakhstan National Team" }, shortName: { ru: "Сборная РК", kk: "ҚР құрамасы", en: "Kazakhstan NT" } }
     };
 
     let activeLeagueKey = 'epl';
@@ -411,7 +414,7 @@
         autoRefreshInterval = setInterval(() => fetchLeagueMatches(activeLeagueKey), 60000);
     }
 
-    // Живые данные из открытого ESPN scoreboard API — ключ не требуется
+    // Диспетчер источников данных: ESPN для больших лиг, TheSportsDB для КПЛ и сборной Казахстана
     async function fetchLeagueMatches(leagueKey) {
         const league = LEAGUES[leagueKey];
         const futureContainer = document.getElementById('future-matches');
@@ -421,36 +424,21 @@
         pastContainer.innerHTML = `<div class="empty-msg">${TRANSLATIONS[currentLang].loading}</div>`;
 
         try {
-            const today = new Date();
-            const start = new Date(today); start.setDate(start.getDate() - 21);
-            const end = new Date(today); end.setDate(end.getDate() + 21);
-            const fmt = (d) => d.toISOString().slice(0, 10).replace(/-/g, '');
+            let future = [];
+            let past = [];
 
-            const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${league.espn}/scoreboard?dates=${fmt(start)}-${fmt(end)}&limit=200`;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error('HTTP ' + res.status);
+            if (league.source === 'thesportsdb-league') {
+                ({ future, past } = await fetchThesportsdbLeague(league.tsdbId));
+            } else if (league.source === 'thesportsdb-team') {
+                const teamId = await getKazakhstanTeamId();
+                if (!teamId) throw new Error('Kazakhstan team not found in TheSportsDB');
+                ({ future, past } = await fetchThesportsdbTeam(teamId));
+            } else {
+                ({ future, past } = await fetchEspnLeague(league.espn));
+            }
 
-            const data = await res.json();
-            const events = data.events || [];
-
-            const future = [];
-            const past = [];
-
-            events.forEach(ev => {
-                const state = ev.status?.type?.state; // 'pre' | 'in' | 'post'
-                const m = formatEspnMatch(ev);
-                if (state === 'post' || state === 'in') {
-                    past.push(m);
-                } else {
-                    future.push(m);
-                }
-            });
-
-            // Если API вернул пусто (например, для этой лиги сейчас нет данных в диапазоне) — считаем ошибкой источника
-            if (events.length === 0) throw new Error('empty response');
-
-            future.sort((a, b) => a._sortDate - b._sortDate);
-            past.sort((a, b) => b._sortDate - a._sortDate);
+            // Никаких выдуманных матчей: если оба списка пустые — считаем это ошибкой источника
+            if (future.length === 0 && past.length === 0) throw new Error('empty response');
 
             renderMatches(futureContainer, future.slice(0, 8), false);
             renderMatches(pastContainer, past.slice(0, 8), true);
@@ -466,6 +454,174 @@
             pastContainer.innerHTML = `<div class="empty-msg">${t.errorMsg}</div>`;
             document.getElementById('last-updated').textContent = '';
         }
+    }
+
+    async function fetchEspnLeague(espnSlug) {
+        const today = new Date();
+        const start = new Date(today); start.setDate(start.getDate() - 21);
+        const end = new Date(today); end.setDate(end.getDate() + 21);
+        const fmt = (d) => d.toISOString().slice(0, 10).replace(/-/g, '');
+
+        const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${espnSlug}/scoreboard?dates=${fmt(start)}-${fmt(end)}&limit=200`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+
+        const data = await res.json();
+        const events = data.events || [];
+
+        const future = [];
+        const past = [];
+
+        events.forEach(ev => {
+            const state = ev.status?.type?.state; // 'pre' | 'in' | 'post'
+            const m = formatEspnMatch(ev);
+            if (state === 'post' || state === 'in') {
+                past.push(m);
+            } else {
+                future.push(m);
+            }
+        });
+
+        future.sort((a, b) => a._sortDate - b._sortDate);
+        past.sort((a, b) => b._sortDate - a._sortDate);
+        return { future, past };
+    }
+
+    // TheSportsDB — бесплатный API без ключа (демо-ключ 3), используется для КПЛ и сборной Казахстана,
+    // которых нет в покрытии ESPN.
+    // ВАЖНО: eventsnextleague.php / eventspastleague.php на бесплатном ключе отдают только 1 матч,
+    // а eventsseason.php обрезается до 15 матчей и может не доходить до текущих туров.
+    // Поэтому: сначала узнаём номер ближайшего/последнего тура (через гарантированный 1 матч),
+    // а затем запрашиваем ВЕСЬ этот тур через eventsround.php — там уже несколько матчей одного дня.
+    async function fetchThesportsdbLeague(leagueId) {
+        let allEvents = [];
+        let nextEvent = null;
+        let pastEvent = null;
+
+        try {
+            const [nextRes, pastRes] = await Promise.all([
+                fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsnextleague.php?id=${leagueId}`),
+                fetch(`https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=${leagueId}`)
+            ]);
+            if (nextRes.ok) {
+                const d = await nextRes.json();
+                if (d.events && d.events.length) { nextEvent = d.events[0]; allEvents.push(nextEvent); }
+            }
+            if (pastRes.ok) {
+                const d = await pastRes.json();
+                if (d.events && d.events.length) { pastEvent = d.events[0]; allEvents.push(pastEvent); }
+            }
+        } catch (e) { /* если это не удалось — попробуем всё равно через сезон ниже */ }
+
+        const roundFetches = [];
+        if (nextEvent && nextEvent.intRound && nextEvent.strSeason) {
+            roundFetches.push(fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=${leagueId}&r=${nextEvent.intRound}&s=${nextEvent.strSeason}`));
+        }
+        if (pastEvent && pastEvent.intRound && pastEvent.strSeason) {
+            roundFetches.push(fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=${leagueId}&r=${pastEvent.intRound}&s=${pastEvent.strSeason}`));
+        }
+        try {
+            const roundResponses = await Promise.all(roundFetches);
+            for (const res of roundResponses) {
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.events) allEvents = allEvents.concat(data.events);
+                }
+            }
+        } catch (e) { /* у нас уже есть подстраховка из первого запроса */ }
+
+        // Дополнительно — весь сезон целиком, best-effort (может быть обрезан бесплатным лимитом)
+        const currentYear = new Date().getFullYear();
+        for (const season of [String(currentYear), String(currentYear - 1)]) {
+            try {
+                const res = await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsseason.php?id=${leagueId}&s=${season}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.events) allEvents = allEvents.concat(data.events);
+                }
+            } catch (e) { /* пропускаем сезон, если запрос не удался */ }
+        }
+
+        const seenIds = new Set();
+        const uniqueEvents = allEvents.filter(ev => {
+            if (seenIds.has(ev.idEvent)) return false;
+            seenIds.add(ev.idEvent);
+            return true;
+        });
+
+        const nowMs = Date.now();
+        const future = [];
+        const past = [];
+
+        uniqueEvents.forEach(ev => {
+            const m = formatSportsDbMatch(ev);
+            if (m._sortDate >= nowMs) future.push(m); else past.push(m);
+        });
+
+        future.sort((a, b) => a._sortDate - b._sortDate);
+        past.sort((a, b) => b._sortDate - a._sortDate);
+        return { future, past };
+    }
+
+    let kazTeamIdCache = null;
+    async function getKazakhstanTeamId() {
+        if (kazTeamIdCache) return kazTeamIdCache;
+        const res = await fetch('https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=Kazakhstan');
+        if (!res.ok) throw new Error('HTTP error (team search)');
+        const data = await res.json();
+        const teams = data.teams || [];
+        const exact = teams.find(t => t.strSport === 'Soccer' && t.strTeam === 'Kazakhstan');
+        const anyMatch = teams.find(t => t.strSport === 'Soccer' && (t.strTeam || '').toLowerCase() === 'kazakhstan');
+        kazTeamIdCache = (exact || anyMatch)?.idTeam || null;
+        return kazTeamIdCache;
+    }
+
+    async function fetchThesportsdbTeam(teamId) {
+        const [nextRes, pastRes] = await Promise.all([
+            fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsnext.php?id=${teamId}`),
+            fetch(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${teamId}`)
+        ]);
+        if (!nextRes.ok || !pastRes.ok) throw new Error('HTTP error (TheSportsDB)');
+
+        const nextData = await nextRes.json();
+        const pastData = await pastRes.json();
+
+        const future = (nextData.events || []).map(formatSportsDbMatch).sort((a, b) => a._sortDate - b._sortDate);
+        const past = (pastData.events || []).map(formatSportsDbMatch).sort((a, b) => b._sortDate - a._sortDate);
+        return { future, past };
+    }
+
+    function formatSportsDbMatch(ev) {
+        const isoGuess = ev.strTimestamp
+            ? ev.strTimestamp.replace(' ', 'T') + 'Z'
+            : `${ev.dateEvent}T${ev.strTime || '00:00:00'}Z`;
+        const d = new Date(isoGuess);
+
+        const localeTag = currentLang === 'kk' ? 'kk-KZ' : currentLang === 'en' ? 'en-US' : 'ru-RU';
+        const dateStr = d.toLocaleDateString(localeTag, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Almaty' });
+        const timeStr = d.toLocaleTimeString(localeTag, { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Almaty' });
+        let dayStr = d.toLocaleDateString(localeTag, { weekday: 'long', timeZone: 'Asia/Almaty' });
+        dayStr = dayStr.charAt(0).toUpperCase() + dayStr.slice(1);
+
+        const hs = ev.intHomeScore;
+        const as = ev.intAwayScore;
+        const hasScore = hs !== null && hs !== undefined && as !== null && as !== undefined && hs !== '' && as !== '';
+        const liveStatuses = ['1H', '2H', 'HT', 'Live', 'ET', 'P'];
+        const isLive = liveStatuses.includes(ev.strStatus);
+
+        return {
+            date: dateStr,
+            day: dayStr,
+            home: ev.strHomeTeam || (currentLang === 'en' ? 'Home Team' : 'Хозяева'),
+            away: ev.strAwayTeam || (currentLang === 'en' ? 'Away Team' : 'Гости'),
+            homeLogo: ev.strHomeTeamBadge || '',
+            awayLogo: ev.strAwayTeamBadge || '',
+            time: timeStr,
+            score: hasScore ? `${hs} : ${as}` : null,
+            isLive: isLive,
+            city: ev.strVenue || '',
+            _sortDate: d.getTime()
+        };
     }
 
     function formatEspnMatch(ev) {
