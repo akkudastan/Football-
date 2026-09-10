@@ -67,7 +67,7 @@
         .compact-date-col span { font-size: 11px; color: var(--muted); }
         .compact-teams-col { flex: 1; display: flex; flex-direction: column; gap: 5px; justify-content: center; }
         .compact-team-row { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--text); }
-        .compact-team-flag { font-size: 16px; width: 22px; text-align: center; }
+        .compact-team-flag { font-size: 16px; width: 22px; text-align: center; display: inline-flex; align-items: center; justify-content: center; }
         .compact-info-col { text-align: right; min-width: 75px; }
         .compact-time-text { font-size: 15px; font-weight: 800; color: var(--blue); display: block; }
         .compact-score-text { font-size: 15px; font-weight: 800; color: var(--green); background: var(--card); padding: 3px 8px; border-radius: 8px; border: 1px solid var(--border); display: inline-block; }
@@ -100,6 +100,8 @@
         .floating-timer.hidden { display: none; }
         .floating-timer-time { font-size: 20px; font-weight: 800; font-family: monospace; color: var(--blue); }
         @keyframes bounce-in { 0% { transform: translateY(20px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+        .live-badge { background: #fee2e2; color: var(--red); border-color: var(--red) !important; animation: pulse-red 1.2s infinite alternate; }
+        .last-updated { text-align: center; font-size: 11px; color: var(--muted); margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -152,7 +154,7 @@
             <span id="league-header-icon" style="font-size:28px;">⭐</span>
             <div>
                 <h2 id="league-title" style="color:var(--blue); font-size: 20px;">Лига чемпионов УЕФА</h2>
-                <p id="league-subtitle" style="color:var(--muted); font-size: 12px;">Основной этап • Live API</p>
+                <p id="league-subtitle" style="color:var(--muted); font-size: 12px;">Live Data • ESPN API</p>
             </div>
         </div>
 
@@ -165,6 +167,8 @@
         <div class="scrollable-match-container">
             <div class="match-list" id="past-matches" data-i18n="loading">Загрузка матчей из API...</div>
         </div>
+
+        <div class="last-updated" id="last-updated"></div>
     </div>
 </main>
 
@@ -222,6 +226,7 @@
             pastMatchesTitle: "📊 Сыгранные матчи",
             loading: "Загрузка данных...",
             emptyMsg: "Матчей не найдено",
+            errorMsg: "⚠️ Не удалось загрузить данные. Проверьте подключение к интернету.",
             modalTimerTitle: "⏱ Секундомер / Таймер",
             customTimeLabel: "Своё время (мин):",
             btnStart: "Старт",
@@ -230,7 +235,9 @@
             btnStopWhistle: "🛑 Остановить свисток",
             feelsLike: "Ощущается",
             humidity: "Влажность",
-            wind: "Ветер"
+            wind: "Ветер",
+            liveNow: "🔴 ИДЁТ СЕЙЧАС",
+            updatedAt: "Обновлено в"
         },
         kk: {
             logoTitle: "Спорт Дайджест",
@@ -243,6 +250,7 @@
             pastMatchesTitle: "📊 Өткен матчтар",
             loading: "Деректер жүктелуде...",
             emptyMsg: "Матчтар табылмады",
+            errorMsg: "⚠️ Деректерді жүктеу мүмкін болмады. Интернет байланысын тексеріңіз.",
             modalTimerTitle: "⏱ Секундомер / Таймер",
             customTimeLabel: "Өз уақытыңыз (мин):",
             btnStart: "Бастау",
@@ -251,7 +259,9 @@
             btnStopWhistle: "🛑 Ысқырықты тоқтату",
             feelsLike: "Сезіледі",
             humidity: "Ылғалдылық",
-            wind: "Жел"
+            wind: "Жел",
+            liveNow: "🔴 ҚАЗІР ОЙНАЛУДА",
+            updatedAt: "Жаңартылды"
         },
         en: {
             logoTitle: "Sports Digest",
@@ -264,6 +274,7 @@
             pastMatchesTitle: "📊 Finished Matches",
             loading: "Loading data...",
             emptyMsg: "No matches found",
+            errorMsg: "⚠️ Failed to load data. Please check your internet connection.",
             modalTimerTitle: "⏱ Stopwatch / Timer",
             customTimeLabel: "Custom time (min):",
             btnStart: "Start",
@@ -272,7 +283,9 @@
             btnStopWhistle: "🛑 Stop Whistle",
             feelsLike: "Feels like",
             humidity: "Humidity",
-            wind: "Wind"
+            wind: "Wind",
+            liveNow: "🔴 LIVE NOW",
+            updatedAt: "Updated at"
         }
     };
 
@@ -291,22 +304,23 @@
         selectLeague(activeLeagueKey);
     }
 
-    // Список турниров с поддержкой API кодов (football-data.org IDs)
+    // espn = ESPN soccer scoreboard slug (public, no API key required)
     const LEAGUES = {
-        ucl: { id: 2001, icon: "⭐", name: { ru: "Лига чемпионов УЕФА", kk: "УЕФА Чемпиондар Лигасы", en: "UEFA Champions League" }, shortName: { ru: "ЛЧ / UCL", kk: "ЧЛ / UCL", en: "UCL" } },
-        epl: { id: 2021, icon: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", name: { ru: "Английская Премьер-лига", kk: "Англия Премьер-лигасы", en: "English Premier League" }, shortName: { ru: "АПЛ / EPL", kk: "АПЛ / EPL", en: "EPL" } },
-        laliga: { id: 2014, icon: "🇪🇸", name: { ru: "Испанская Ла Лига", kk: "Испания Ла Лигасы", en: "Spanish La Liga" }, shortName: { ru: "Ла Лига", kk: "Ла Лига", en: "La Liga" } },
-        bundesliga: { id: 2002, icon: "🇩🇪", name: { ru: "Немецкая Бундеслига", kk: "Германия Бундеслигасы", en: "German Bundesliga" }, shortName: { ru: "Бундеслига", kk: "Бундеслига", en: "Bundesliga" } },
-        seriea: { id: 2019, icon: "🇮🇹", name: { ru: "Итальянская Серия A", kk: "Италия Сериясы A", en: "Italian Serie A" }, shortName: { ru: "Серия A", kk: "Серия A", en: "Serie A" } }
+        epl: { espn: 'eng.1', icon: "🏴", name: { ru: "Английская Премьер-лига", kk: "Англия Премьер-лигасы", en: "English Premier League" }, shortName: { ru: "АПЛ / EPL", kk: "АПЛ / EPL", en: "EPL" } },
+        ucl: { espn: 'uefa.champions', icon: "⭐", name: { ru: "Лига чемпионов УЕФА", kk: "УЕФА Чемпиондар Лигасы", en: "UEFA Champions League" }, shortName: { ru: "ЛЧ / UCL", kk: "ЧЛ / UCL", en: "UCL" } },
+        laliga: { espn: 'esp.1', icon: "🇪🇸", name: { ru: "Испанская Ла Лига", kk: "Испания Ла Лигасы", en: "Spanish La Liga" }, shortName: { ru: "Ла Лига", kk: "Ла Лига", en: "La Liga" } },
+        bundesliga: { espn: 'ger.1', icon: "🇩🇪", name: { ru: "Немецкая Бундеслига", kk: "Германия Бундеслигасы", en: "German Bundesliga" }, shortName: { ru: "Бундеслига", kk: "Бундеслига", en: "Bundesliga" } },
+        seriea: { espn: 'ita.1', icon: "🇮🇹", name: { ru: "Итальянская Серия A", kk: "Италия Сериясы A", en: "Italian Serie A" }, shortName: { ru: "Серия A", kk: "Серия A", en: "Serie A" } },
+        ligue1: { espn: 'fra.1', icon: "🇫🇷", name: { ru: "Французская Лига 1", kk: "Франция Лига 1", en: "French Ligue 1" }, shortName: { ru: "Лига 1", kk: "Лига 1", en: "Ligue 1" } }
     };
 
     let activeLeagueKey = 'epl';
-    let matchesCache = {};
+    let autoRefreshInterval = null;
 
     function updateClock() {
         const now = new Date();
-        document.getElementById("clock").textContent = now.toLocaleTimeString(currentLang === 'kk' ? 'kk-KZ' : currentLang === 'en' ? 'en-US' : 'ru-RU');
         const localeTag = currentLang === 'kk' ? 'kk-KZ' : currentLang === 'en' ? 'en-US' : 'ru-RU';
+        document.getElementById("clock").textContent = now.toLocaleTimeString(localeTag);
         const dateStr = now.toLocaleDateString(localeTag, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
         document.getElementById("date").textContent = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
     }
@@ -361,14 +375,14 @@
     function renderLeagueButtons() {
         const container = document.getElementById('league-buttons-container');
         container.innerHTML = '';
-        
+
         Object.keys(LEAGUES).forEach((key) => {
             const league = LEAGUES[key];
             const btn = document.createElement('button');
             const isActive = (key === activeLeagueKey);
             btn.className = `league-btn ${isActive ? 'active' : ''}`;
             btn.onclick = () => selectLeague(key, btn);
-            
+
             const btnText = league.shortName[currentLang] || league.shortName.ru;
             btn.innerHTML = `<span>${league.icon}</span><span>${btnText}</span>`;
             container.appendChild(btn);
@@ -379,7 +393,7 @@
         activeLeagueKey = key;
         const league = LEAGUES[key];
         document.getElementById('league-title').textContent = league.name[currentLang] || league.name.ru;
-        document.getElementById('league-subtitle').textContent = "Live Data • Сезон 2026/27";
+        document.getElementById('league-subtitle').textContent = "Live Data • ESPN API";
         document.getElementById('league-header-icon').textContent = league.icon;
 
         document.querySelectorAll('.league-btn').forEach(b => b.classList.remove('active'));
@@ -391,68 +405,105 @@
             });
         }
 
-        await fetchLeagueMatches(league.id);
+        // Перезапускаем автообновление под выбранную лигу
+        clearInterval(autoRefreshInterval);
+        await fetchLeagueMatches(key);
+        autoRefreshInterval = setInterval(() => fetchLeagueMatches(activeLeagueKey), 60000);
     }
 
-    async function fetchLeagueMatches(competitionId) {
+    // Живые данные из открытого ESPN scoreboard API — ключ не требуется
+    async function fetchLeagueMatches(leagueKey) {
+        const league = LEAGUES[leagueKey];
         const futureContainer = document.getElementById('future-matches');
         const pastContainer = document.getElementById('past-matches');
-        
+
         futureContainer.innerHTML = `<div class="empty-msg">${TRANSLATIONS[currentLang].loading}</div>`;
         pastContainer.innerHTML = `<div class="empty-msg">${TRANSLATIONS[currentLang].loading}</div>`;
 
         try {
-            // Запрос к публичному API (используется бесплатный публичный эндпоинт матчей)
-            const res = await fetch(`https://api.football-data.org/v4/competitions/${competitionId}/matches?status=SCHEDULED,FINISHED`, {
-                headers: { 'X-Auth-Token': 'YOUR_API_KEY_HERE' } // Можно оставить пустым или получить бесплатный ключ на football-data.org
-            });
-            
-            if (!res.ok) throw new Error("API limit or error");
+            const today = new Date();
+            const start = new Date(today); start.setDate(start.getDate() - 21);
+            const end = new Date(today); end.setDate(end.getDate() + 21);
+            const fmt = (d) => d.toISOString().slice(0, 10).replace(/-/g, '');
+
+            const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${league.espn}/scoreboard?dates=${fmt(start)}-${fmt(end)}&limit=200`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+
             const data = await res.json();
-            
-            const matches = data.matches || [];
-            const now = new Date();
+            const events = data.events || [];
 
-            const future = matches.filter(m => new Date(m.utcDate) >= now).slice(0, 6).map(m => formatApiMatch(m, false));
-            const past = matches.filter(m => new Date(m.utcDate) < now).slice(-4).reverse().map(m => formatApiMatch(m, true));
+            const future = [];
+            const past = [];
 
-            renderMatches(futureContainer, future, false);
-            renderMatches(pastContainer, past, true);
+            events.forEach(ev => {
+                const state = ev.status?.type?.state; // 'pre' | 'in' | 'post'
+                const m = formatEspnMatch(ev);
+                if (state === 'post' || state === 'in') {
+                    past.push(m);
+                } else {
+                    future.push(m);
+                }
+            });
+
+            // Если API вернул пусто (например, для этой лиги сейчас нет данных в диапазоне) — считаем ошибкой источника
+            if (events.length === 0) throw new Error('empty response');
+
+            future.sort((a, b) => a._sortDate - b._sortDate);
+            past.sort((a, b) => b._sortDate - a._sortDate);
+
+            renderMatches(futureContainer, future.slice(0, 8), false);
+            renderMatches(pastContainer, past.slice(0, 8), true);
+
+            const t = TRANSLATIONS[currentLang];
+            const localeTag = currentLang === 'kk' ? 'kk-KZ' : currentLang === 'en' ? 'en-US' : 'ru-RU';
+            document.getElementById('last-updated').textContent =
+                `${t.updatedAt} ${new Date().toLocaleTimeString(localeTag, { timeZone: 'Asia/Almaty' })}`;
         } catch (e) {
-            // Резервный вариант (fallback) если API недоступно или исчерпан лимит бесплатного запроса
-            renderFallbackMatches(futureContainer, pastContainer);
+            // Никаких выдуманных матчей — честно показываем, что источник недоступен
+            const t = TRANSLATIONS[currentLang];
+            futureContainer.innerHTML = `<div class="empty-msg">${t.errorMsg}</div>`;
+            pastContainer.innerHTML = `<div class="empty-msg">${t.errorMsg}</div>`;
+            document.getElementById('last-updated').textContent = '';
         }
     }
 
-    function formatApiMatch(m, isPast) {
-        const d = new Date(m.utcDate);
-        const dateStr = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        const timeStr = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        const dayStr = d.toLocaleDateString(currentLang === 'kk' ? 'kk-KZ' : currentLang === 'en' ? 'en-US' : 'ru-RU', { weekday: 'long' });
+    function formatEspnMatch(ev) {
+        const comp = ev.competitions?.[0] || {};
+        const competitors = comp.competitors || [];
+        const home = competitors.find(c => c.homeAway === 'home') || {};
+        const away = competitors.find(c => c.homeAway === 'away') || {};
+        const d = new Date(ev.date);
+
+        const localeTag = currentLang === 'kk' ? 'kk-KZ' : currentLang === 'en' ? 'en-US' : 'ru-RU';
+        const dateStr = d.toLocaleDateString(localeTag, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Almaty' });
+        const timeStr = d.toLocaleTimeString(localeTag, { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Almaty' });
+        let dayStr = d.toLocaleDateString(localeTag, { weekday: 'long', timeZone: 'Asia/Almaty' });
+        dayStr = dayStr.charAt(0).toUpperCase() + dayStr.slice(1);
+
+        const state = ev.status?.type?.state;
+        const isLive = state === 'in';
+
+        let scoreStr = null;
+        if (state === 'post' || isLive) {
+            const hs = home.score ?? '-';
+            const as = away.score ?? '-';
+            scoreStr = `${hs} : ${as}`;
+        }
 
         return {
             date: dateStr,
-            day: dayStr.charAt(0).toUpperCase() + dayStr.slice(1),
-            home: m.homeTeam.name,
-            homeFlag: '⚽',
-            away: m.awayTeam.name,
-            awayFlag: '⚽',
+            day: dayStr,
+            home: home.team?.displayName || home.team?.shortDisplayName || (currentLang === 'en' ? 'Home Team' : 'Хозяева'),
+            away: away.team?.displayName || away.team?.shortDisplayName || (currentLang === 'en' ? 'Away Team' : 'Гости'),
+            homeLogo: home.team?.logo || '',
+            awayLogo: away.team?.logo || '',
             time: timeStr,
-            score: isPast ? `${m.score.fullTime.home} : ${m.score.fullTime.away}` : null,
-            city: m.area?.name || ''
+            score: scoreStr,
+            isLive: isLive,
+            city: comp.venue?.fullName || '',
+            _sortDate: d.getTime()
         };
-    }
-
-    function renderFallbackMatches(futureContainer, pastContainer) {
-        const fallbackFuture = [
-            { date: '15.09.2026', day: 'Вторник', home: 'Реал Мадрид', homeFlag: '⚪', away: 'Манчестер Сити', awayFlag: '🩵', time: '00:00', city: 'Мадрид' },
-            { date: '16.09.2026', day: 'Среда', home: 'Бавария', homeFlag: '🔴', away: 'ПСЖ', awayFlag: '🔵', time: '00:00', city: 'Мюнхен' }
-        ];
-        const fallbackPast = [
-            { date: '09.09.2026', day: 'Среда', home: 'Барселона', homeFlag: '🔵', away: 'Интер', awayFlag: '🔵', score: '3 : 1', city: 'Барселона' }
-        ];
-        renderMatches(futureContainer, fallbackFuture, false);
-        renderMatches(pastContainer, fallbackPast, true);
     }
 
     function renderMatches(container, list, isPast) {
@@ -463,9 +514,21 @@
         }
 
         list.forEach(m => {
-            const rightValue = isPast 
-                ? `<span class="compact-score-text">${m.score}</span>` 
-                : `<span class="compact-time-text">${m.time}</span>`;
+            let rightValue;
+            if (isPast) {
+                rightValue = m.isLive
+                    ? `<span class="compact-score-text live-badge">${TRANSLATIONS[currentLang].liveNow}<br>${m.score}</span>`
+                    : `<span class="compact-score-text">${m.score}</span>`;
+            } else {
+                rightValue = `<span class="compact-time-text">${m.time}</span>`;
+            }
+
+            const homeFlag = m.homeLogo
+                ? `<img src="${m.homeLogo}" alt="" style="width:20px;height:20px;object-fit:contain;" onerror="this.style.display='none'">`
+                : '⚽';
+            const awayFlag = m.awayLogo
+                ? `<img src="${m.awayLogo}" alt="" style="width:20px;height:20px;object-fit:contain;" onerror="this.style.display='none'">`
+                : '⚽';
 
             container.innerHTML += `
                 <div class="match-card-compact">
@@ -476,11 +539,11 @@
 
                     <div class="compact-teams-col">
                         <div class="compact-team-row">
-                            <span class="compact-team-flag">${m.homeFlag}</span>
+                            <span class="compact-team-flag">${homeFlag}</span>
                             <span>${m.home}</span>
                         </div>
                         <div class="compact-team-row">
-                            <span class="compact-team-flag">${m.awayFlag}</span>
+                            <span class="compact-team-flag">${awayFlag}</span>
                             <span>${m.away}</span>
                         </div>
                     </div>
@@ -498,7 +561,7 @@
     }
 
     let timerInterval = null;
-    let totalSeconds = 360; 
+    let totalSeconds = 360;
     let remainingSeconds = 360;
     let isRunning = false;
     let isMinimized = false;
@@ -530,7 +593,7 @@
         const m = Math.floor(remainingSeconds / 60).toString().padStart(2, '0');
         const s = (remainingSeconds % 60).toString().padStart(2, '0');
         const timeStr = `${m}:${s}`;
-        
+
         document.getElementById('timerDisplay').textContent = timeStr;
         document.getElementById('floatingTimerDisplay').textContent = timeStr;
         document.getElementById('floatingStatus').textContent = isRunning ? '▶' : '⏸';
@@ -550,7 +613,7 @@
         if (isRunning) return;
         stopWhistleSound();
         initAudio();
-        
+
         try {
             if ('wakeLock' in navigator) {
                 wakeLock = await navigator.wakeLock.request('screen');
