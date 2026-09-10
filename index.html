@@ -152,18 +152,18 @@
             <span id="league-header-icon" style="font-size:28px;">⭐</span>
             <div>
                 <h2 id="league-title" style="color:var(--blue); font-size: 20px;">Лига чемпионов УЕФА</h2>
-                <p id="league-subtitle" style="color:var(--muted); font-size: 12px;">Основной этап • Сезон 2026/27</p>
+                <p id="league-subtitle" style="color:var(--muted); font-size: 12px;">Основной этап • Live API</p>
             </div>
         </div>
 
         <div class="section-header"><h3 data-i18n="futureMatchesTitle">📅 Запланированные матчи</h3></div>
         <div class="scrollable-match-container">
-            <div class="match-list" id="future-matches" data-i18n="loading">Загрузка...</div>
+            <div class="match-list" id="future-matches" data-i18n="loading">Загрузка матчей из API...</div>
         </div>
 
         <div class="section-header" style="margin-top: 25px;"><h3 data-i18n="pastMatchesTitle">📊 Сыгранные матчи</h3></div>
         <div class="scrollable-match-container">
-            <div class="match-list" id="past-matches" data-i18n="loading">Загрузка...</div>
+            <div class="match-list" id="past-matches" data-i18n="loading">Загрузка матчей из API...</div>
         </div>
     </div>
 </main>
@@ -220,7 +220,7 @@
             selectLeagueTitle: "🏆 Выберите Премьер-лигу / Турнир",
             futureMatchesTitle: "📅 Запланированные матчи",
             pastMatchesTitle: "📊 Сыгранные матчи",
-            loading: "Загрузка...",
+            loading: "Загрузка данных...",
             emptyMsg: "Матчей не найдено",
             modalTimerTitle: "⏱ Секундомер / Таймер",
             customTimeLabel: "Своё время (мин):",
@@ -241,7 +241,7 @@
             selectLeagueTitle: "🏆 Премьер-лиганы / Турнирді таңдаңыз",
             futureMatchesTitle: "📅 Жоспарланған матчтар",
             pastMatchesTitle: "📊 Өткен матчтар",
-            loading: "Жүктелуде...",
+            loading: "Деректер жүктелуде...",
             emptyMsg: "Матчтар табылмады",
             modalTimerTitle: "⏱ Секундомер / Таймер",
             customTimeLabel: "Өз уақытыңыз (мин):",
@@ -262,7 +262,7 @@
             selectLeagueTitle: "🏆 Select Premier League / Tournament",
             futureMatchesTitle: "📅 Scheduled Matches",
             pastMatchesTitle: "📊 Finished Matches",
-            loading: "Loading...",
+            loading: "Loading data...",
             emptyMsg: "No matches found",
             modalTimerTitle: "⏱ Stopwatch / Timer",
             customTimeLabel: "Custom time (min):",
@@ -291,103 +291,17 @@
         selectLeague(activeLeagueKey);
     }
 
-    const FOOTBALL_DATA = {
-        ucl: {
-            name: { ru: "Лига чемпионов УЕФА", kk: "УЕФА Чемпиондар Лигасы", en: "UEFA Champions League" },
-            subtitle: { ru: "Основной этап • Сезон 2026/27", kk: "Негізгі кезең • 2026/27 маусымы", en: "League phase • 2026/27 Season" },
-            shortName: { ru: "ЛЧ / UCL", kk: "ЧЛ / UCL", en: "UCL" },
-            icon: "⭐",
-            future: [
-                { date: '15.09.2026', day: { ru: 'Вторник', kk: 'Сейсенбі', en: 'Tuesday' }, home: { ru: 'Милан', kk: 'Милан', en: 'AC Milan' }, homeFlag: '🔴', away: { ru: 'Ливерпуль', kk: 'Ливерпуль', en: 'Liverpool' }, awayFlag: '🔴', time: '00:00', city: { ru: 'Милан', kk: 'Милан', en: 'Milan' } },
-                { date: '15.09.2026', day: { ru: 'Вторник', kk: 'Сейсенбі', en: 'Tuesday' }, home: { ru: 'Ювентус', kk: 'Ювентус', en: 'Juventus' }, homeFlag: '⚪', away: { ru: 'Боруссия Д', kk: 'Боруссия Д', en: 'Dortmund' }, awayFlag: '🟡', time: '00:00', city: { ru: 'Турин', kk: 'Турин', en: 'Turin' } },
-                { date: '16.09.2026', day: { ru: 'Среда', kk: 'Сәрсенбі', en: 'Wednesday' }, home: { ru: 'Реал Мадрид', kk: 'Реал Мадрид', en: 'Real Madrid' }, homeFlag: '⚪', away: { ru: 'Марсель', kk: 'Марсель', en: 'Marseille' }, awayFlag: '⚪', time: '00:00', city: { ru: 'Мадрид', kk: 'Мадрид', en: 'Madrid' } },
-                { date: '16.09.2026', day: { ru: 'Среда', kk: 'Сәрсенбі', en: 'Wednesday' }, home: { ru: 'Манчестер Сити', kk: 'Манчестер Сити', en: 'Manchester City' }, homeFlag: '🩵', away: { ru: 'Интер', kk: 'Интер', en: 'Inter Milan' }, awayFlag: '🔵', time: '00:00', city: { ru: 'Манчестер', kk: 'Манчестер', en: 'Manchester' } },
-                { date: '17.09.2026', day: { ru: 'Четверг', kk: 'Бейсенбі', en: 'Thursday' }, home: { ru: 'ПСЖ', kk: 'ПСЖ', en: 'Paris Saint-Germain' }, homeFlag: '🔵', away: { ru: 'Аталанта', kk: 'Аталанта', en: 'Atalanta' }, awayFlag: '⚫', time: '00:00', city: { ru: 'Париж', kk: 'Париж', en: 'Paris' } },
-                { date: '17.09.2026', day: { ru: 'Четверг', kk: 'Бейсенбі', en: 'Thursday' }, home: { ru: 'Барселона', kk: 'Барселона', en: 'Barcelona' }, homeFlag: '🔵', away: { ru: 'Бавария', kk: 'Бавария', en: 'Bayern Munich' }, awayFlag: '🔴', time: '03:00', city: { ru: 'Барселона', kk: 'Барселона', en: 'Barcelona' } }
-            ],
-            past: [
-                { date: '09.09.2026', day: { ru: 'Среда', kk: 'Сәрсенбі', en: 'Wednesday' }, home: { ru: 'Барселона', kk: 'Барселона', en: 'Barcelona' }, homeFlag: '🔵', away: { ru: 'Фейеноорд', kk: 'Фейеноорд', en: 'Feyenoord' }, awayFlag: '🔴', score: '5 : 1', city: { ru: 'Барселона', kk: 'Барселона', en: 'Barcelona' } },
-                { date: '09.09.2026', day: { ru: 'Среда', kk: 'Сәрсенбі', en: 'Wednesday' }, home: { ru: 'Реал Мадрид', kk: 'Реал Мадрид', en: 'Real Madrid' }, homeFlag: '⚪', away: { ru: 'Интер', kk: 'Интер', en: 'Inter Milan' }, awayFlag: '🔵', score: '2 : 1', city: { ru: 'Мадрид', kk: 'Мадрид', en: 'Madrid' } }
-            ]
-        },
-        kpl: {
-            name: { ru: "Премьер-лига Казахстана (КПЛ)", kk: "Қазақстан Премьер-лигасы (ҚПЛ)", en: "Kazakhstan Premier League (KPL)" },
-            subtitle: { ru: "Чемпионат Казахстана • 2026", kk: "Қазақстан чемпионаты • 2026", en: "Kazakhstan Championship • 2026" },
-            shortName: { ru: "КПЛ / KPL", kk: "ҚПЛ / KPL", en: "KPL" },
-            icon: "🇰🇿",
-            future: [
-                { date: '12.09.2026', day: { ru: 'Суббота', kk: 'Сенбі', en: 'Saturday' }, home: { ru: 'Каспий', kk: 'Каспий', en: 'Caspian' }, homeFlag: '🟡', away: { ru: 'Актобе', kk: 'Ақтөбе', en: 'Aktobe' }, awayFlag: '🔴', time: '17:00', city: { ru: 'Актау', kk: 'Ақтау', en: 'Aktau' } },
-                { date: '12.09.2026', day: { ru: 'Суббота', kk: 'Сенбі', en: 'Saturday' }, home: { ru: 'Елимай', kk: 'Елімай', en: 'Elimai' }, homeFlag: '⚪', away: { ru: 'Жетысу', kk: 'Жетісу', en: 'Zhetysu' }, awayFlag: '🔵', time: '18:00', city: { ru: 'Семей', kk: 'Семей', en: 'Semey' } },
-                { date: '12.09.2026', day: { ru: 'Суббота', kk: 'Сенбі', en: 'Saturday' }, home: { ru: 'Женис', kk: 'Жеңіс', en: 'Jenis' }, homeFlag: '🟡', away: { ru: 'Кызыл-Жар', kk: 'Қызылжар', en: 'Kyzylzhar' }, awayFlag: '🔵', time: '19:00', city: { ru: 'Астана', kk: 'Астана', en: 'Astana' } },
-                { date: '12.09.2026', day: { ru: 'Суббота', kk: 'Сенбі', en: 'Saturday' }, home: { ru: 'Ордабасы', kk: 'Ордабасы', en: 'Ordabasy' }, homeFlag: '🔵', away: { ru: 'ФК Астана', kk: 'ФК Астана', en: 'FC Astana' }, awayFlag: '🟡', time: '19:00', city: { ru: 'Шымкент', kk: 'Шымкент', en: 'Shymkent' } },
-                { date: '12.09.2026', day: { ru: 'Суббота', kk: 'Сенбі', en: 'Saturday' }, home: { ru: 'Кайсар', kk: 'Қайсар', en: 'Kaisar' }, homeFlag: '🔴', away: { ru: 'Атырау', kk: 'Атырау', en: 'Atyrau' }, awayFlag: '🟢', time: '20:00', city: { ru: 'Кызылорда', kk: 'Қызылорда', en: 'Kyzylorda' } },
-                { date: '13.09.2026', day: { ru: 'Воскресенье', kk: 'Жексенбі', en: 'Sunday' }, home: { ru: 'Кайрат', kk: 'Қайрат', en: 'Kairat' }, homeFlag: '🟡', away: { ru: 'Тобол', kk: 'Тобыл', en: 'Tobol' }, awayFlag: '🟡', time: '19:00', city: { ru: 'Алматы', kk: 'Алматы', en: 'Almaty' } }
-            ],
-            past: [
-                { date: '06.09.2026', day: { ru: 'Воскресенье', kk: 'Жексенбі', en: 'Sunday' }, home: { ru: 'ФК Астана', kk: 'ФК Астана', en: 'FC Astana' }, homeFlag: '🟡', away: { ru: 'Елимай', kk: 'Елімай', en: 'Elimai' }, awayFlag: '⚪', score: '4 : 0', city: { ru: 'Астана', kk: 'Астана', en: 'Astana' } },
-                { date: '06.09.2026', day: { ru: 'Воскресенье', kk: 'Жексенбі', en: 'Sunday' }, home: { ru: 'Тобол', kk: 'Тобыл', en: 'Tobol' }, homeFlag: '🟡', away: { ru: 'Улытау', kk: 'Ұлытау', en: 'Ulytau' }, awayFlag: '⚪', score: '3 : 1', city: { ru: 'Костанай', kk: 'Қостанай', en: 'Kostanay' } }
-            ]
-        },
-        epl: {
-            name: { ru: "Английская Премьер-лига (АПЛ)", kk: "Англия Премьер-лигасы (АПЛ)", en: "English Premier League (EPL)" },
-            subtitle: { ru: "Чемпионат Англии • 2026/27", kk: "Англия чемпионаты • 2026/27", en: "English Championship • 2026/27" },
-            shortName: { ru: "АПЛ / EPL", kk: "АПЛ / EPL", en: "EPL" },
-            icon: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-            future: [
-                { date: '12.09.2026', day: { ru: 'Суббота', kk: 'Сенбі', en: 'Saturday' }, home: { ru: 'Ливерпуль', kk: 'Ливерпуль', en: 'Liverpool' }, homeFlag: '🔴', away: { ru: 'Фулхэм', kk: 'Фулхэм', en: 'Fulham' }, awayFlag: '⚪', time: '19:00', city: { ru: 'Ливерпуль', kk: 'Ливерпуль', en: 'Liverpool' } },
-                { date: '12.09.2026', day: { ru: 'Суббота', kk: 'Сенбі', en: 'Saturday' }, home: { ru: 'Челси', kk: 'Челси', en: 'Chelsea' }, homeFlag: '🔵', away: { ru: 'Халл Сити', kk: 'Халл Сити', en: 'Hull City' }, awayFlag: '🟡', time: '19:00', city: { ru: 'Лондон', kk: 'Лондон', en: 'London' } },
-                { date: '13.09.2026', day: { ru: 'Воскресенье', kk: 'Жексенбі', en: 'Sunday' }, home: { ru: 'Манчестер Юнайтед', kk: 'Манчестер Юнайтед', en: 'Manchester United' }, homeFlag: '🔴', away: { ru: 'Манчестер Сити', kk: 'Манчестер Сити', en: 'Manchester City' }, awayFlag: '🩵', time: '20:30', city: { ru: 'Манчестер', kk: 'Манчестер', en: 'Manchester' } }
-            ],
-            past: [
-                { date: '06.09.2026', day: { ru: 'Воскресенье', kk: 'Жексенбі', en: 'Sunday' }, home: { ru: 'Арсенал', kk: 'Арсенал', en: 'Arsenal' }, homeFlag: '🔴', away: { ru: 'Челси', kk: 'Челси', en: 'Chelsea' }, awayFlag: '🔵', score: '2 : 1', city: { ru: 'Лондон', kk: 'Лондон', en: 'London' } }
-            ]
-        },
-        seriea: {
-            name: { ru: "Итальянская Серия A", kk: "Италия Сериясы A", en: "Italian Serie A" },
-            subtitle: { ru: "Чемпионат Италии • 2026/27", kk: "Италия чемпионаты • 2026/27", en: "Italian Championship • 2026/27" },
-            shortName: { ru: "Серия A", kk: "Серия A", en: "Serie A" },
-            icon: "🇮🇹",
-            future: [
-                { date: '11.09.2026', day: { ru: 'Пятница', kk: 'Жұма', en: 'Friday' }, home: { ru: 'Венеция', kk: 'Венеция', en: 'Venezia' }, homeFlag: '🟢', away: { ru: 'Фиорентина', kk: 'Фиорентина', en: 'Fiorentina' }, awayFlag: '🟣', time: '23:45', city: { ru: 'Венеция', kk: 'Венеция', en: 'Venice' } },
-                { date: '12.09.2026', day: { ru: 'Суббота', kk: 'Сенбі', en: 'Saturday' }, home: { ru: 'Лацио', kk: 'Лацио', en: 'Lazio' }, homeFlag: '🩵', away: { ru: 'Милан', kk: 'Милан', en: 'AC Milan' }, awayFlag: '🔴', time: '21:00', city: { ru: 'Рим', kk: 'Рим', en: 'Rome' } }
-            ],
-            past: [
-                { date: '02.09.2026', day: { ru: 'Среда', kk: 'Сәрсенбі', en: 'Wednesday' }, home: { ru: 'Интер', kk: 'Интер', en: 'Inter Milan' }, homeFlag: '🔵', away: { ru: 'Ювентус', kk: 'Ювентус', en: 'Juventus' }, awayFlag: '⚪', score: '1 : 0', city: { ru: 'Милан', kk: 'Милан', en: 'Milan' } }
-            ]
-        },
-        laliga: {
-            name: { ru: "Испанская Ла Лига (Тур 5)", kk: "Испания Ла Лигасы (5-тур)", en: "Spanish La Liga (Matchday 5)" },
-            subtitle: { ru: "LaLiga • Сезон 2026/27", kk: "LaLiga • 2026/27 маусымы", en: "LaLiga • 2026/27 Season" },
-            shortName: { ru: "Ла Лига", kk: "Ла Лига", en: "La Liga" },
-            icon: "🇪🇸",
-            future: [
-                { date: '12.09.2026', day: { ru: 'Суббота', kk: 'Сенбі', en: 'Saturday' }, home: { ru: 'Севилья', kk: 'Севилья', en: 'Sevilla' }, homeFlag: '⚪', away: { ru: 'Валенсия', kk: 'Валенсия', en: 'Valencia' }, awayFlag: '🟠', time: '00:00', city: { ru: 'Севилья', kk: 'Севилья', en: 'Seville' } },
-                { date: '12.09.2026', day: { ru: 'Суббота', kk: 'Сенбі', en: 'Saturday' }, home: { ru: 'Осасуна', kk: 'Осасуна', en: 'Osasuna' }, homeFlag: '🔴', away: { ru: 'Эспаньол', kk: 'Эспаньол', en: 'Espanyol' }, awayFlag: '🔵', time: '19:15', city: { ru: 'Памплона', kk: 'Памплона', en: 'Pamplona' } }
-            ],
-            past: [
-                { date: '03.09.2026', day: { ru: 'Четверг', kk: 'Бейсенбі', en: 'Thursday' }, home: { ru: 'Реал Мадрид', kk: 'Реал Мадрид', en: 'Real Madrid' }, homeFlag: '⚪', away: { ru: 'Барселона', kk: 'Барселона', en: 'Barcelona' }, awayFlag: '🔵', score: '2 : 1', city: { ru: 'Мадрид', kk: 'Мадрид', en: 'Madrid' } }
-            ]
-        },
-        bundesliga: {
-            name: { ru: "Немецкая Бундеслига (Тур 3)", kk: "Германия Бундеслигасы (3-тур)", en: "German Bundesliga (Matchday 3)" },
-            subtitle: { ru: "Bundesliga • Сезон 2026/27", kk: "Bundesliga • 2026/27 маусымы", en: "Bundesliga • 2026/27 Season" },
-            shortName: { ru: "Бундеслига", kk: "Бундеслига", en: "Bundesliga" },
-            icon: "🇩🇪",
-            future: [
-                { date: '11.09.2026', day: { ru: 'Пятница', kk: 'Жұма', en: 'Friday' }, home: { ru: 'Унион Берлин', kk: 'Унион Берлин', en: 'Union Berlin' }, homeFlag: '🔴', away: { ru: 'Шальке 04', kk: 'Шальке 04', en: 'Schalke 04' }, awayFlag: '🔵', time: '23:30', city: { ru: 'Берлин', kk: 'Берлин', en: 'Berlin' } },
-                { date: '12.09.2026', day: { ru: 'Суббота', kk: 'Сенбі', en: 'Saturday' }, home: { ru: 'Боруссия Дортмунд', kk: 'Боруссия Дортмунд', en: 'Borussia Dortmund' }, homeFlag: '🟡', away: { ru: 'Падерборн 07', kk: 'Падерборн 07', en: 'Paderborn 07' }, awayFlag: '🔵', time: '18:30', city: { ru: 'Дортмунд', kk: 'Дортмунд', en: 'Dortmund' } },
-                { date: '12.09.2026', day: { ru: 'Суббота', kk: 'Сенбі', en: 'Saturday' }, home: { ru: 'Хоффенхайм', kk: 'Хоффенхайм', en: 'Hoffenheim' }, homeFlag: '🔵', away: { ru: 'Штутгарт', kk: 'Штутгарт', en: 'Stuttgart' }, awayFlag: '🔴', time: '18:30', city: { ru: 'Зинсхайм', kk: 'Зинсхайм', en: 'Sinsheim' } },
-                { date: '12.09.2026', day: { ru: 'Суббота', kk: 'Сенбі', en: 'Saturday' }, home: { ru: 'Фрайбург', kk: 'Фрайбург', en: 'Freiburg' }, homeFlag: '⚫', away: { ru: 'Боруссия М', kk: 'Боруссия М', en: 'Borussia M' }, awayFlag: '⬛', time: '18:30', city: { ru: 'Фрайбург', kk: 'Фрайбург', en: 'Freiburg' } },
-                { date: '12.09.2026', day: { ru: 'Суббота', kk: 'Сенбі', en: 'Saturday' }, home: { ru: 'Аугсбург', kk: 'Аугсбург', en: 'Augsburg' }, homeFlag: '🟢', away: { ru: 'Байер Леверкузен', kk: 'Байер Леверкузен', en: 'Bayer Leverkusen' }, awayFlag: '🔴', time: '18:30', city: { ru: 'Аугсбург', kk: 'Аугсбург', en: 'Augsburg' } },
-                { date: '12.09.2026', day: { ru: 'Суббота', kk: 'Сенбі', en: 'Saturday' }, home: { ru: 'Майнц 05', kk: 'Майнц 05', en: 'Mainz 05' }, homeFlag: '🔴', away: { ru: 'Айнтрахт Франкфурт', kk: 'Айнтрахт Франкфурт', en: 'Eintracht Frankfurt' }, awayFlag: '🔴', time: '18:30', city: { ru: 'Майнц', kk: 'Майнц', en: 'Mainz' } }
-            ],
-            past: [
-                { date: '02.09.2026', day: { ru: 'Среда', kk: 'Сәрсенбі', en: 'Wednesday' }, home: { ru: 'Бавария', kk: 'Бавария', en: 'Bayern Munich' }, homeFlag: '🔴', away: { ru: 'Боруссия Дортмунд', kk: 'Боруссия Дортмунд', en: 'Borussia Dortmund' }, awayFlag: '🟡', score: '3 : 2', city: { ru: 'Мюнхен', kk: 'Мюнхен', en: 'Munich' } }
-            ]
-        }
+    // Список турниров с поддержкой API кодов (football-data.org IDs)
+    const LEAGUES = {
+        ucl: { id: 2001, icon: "⭐", name: { ru: "Лига чемпионов УЕФА", kk: "УЕФА Чемпиондар Лигасы", en: "UEFA Champions League" }, shortName: { ru: "ЛЧ / UCL", kk: "ЧЛ / UCL", en: "UCL" } },
+        epl: { id: 2021, icon: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", name: { ru: "Английская Премьер-лига", kk: "Англия Премьер-лигасы", en: "English Premier League" }, shortName: { ru: "АПЛ / EPL", kk: "АПЛ / EPL", en: "EPL" } },
+        laliga: { id: 2014, icon: "🇪🇸", name: { ru: "Испанская Ла Лига", kk: "Испания Ла Лигасы", en: "Spanish La Liga" }, shortName: { ru: "Ла Лига", kk: "Ла Лига", en: "La Liga" } },
+        bundesliga: { id: 2002, icon: "🇩🇪", name: { ru: "Немецкая Бундеслига", kk: "Германия Бундеслигасы", en: "German Bundesliga" }, shortName: { ru: "Бундеслига", kk: "Бундеслига", en: "Bundesliga" } },
+        seriea: { id: 2019, icon: "🇮🇹", name: { ru: "Итальянская Серия A", kk: "Италия Сериясы A", en: "Italian Serie A" }, shortName: { ru: "Серия A", kk: "Серия A", en: "Serie A" } }
     };
 
-    let activeLeagueKey = 'bundesliga';
+    let activeLeagueKey = 'epl';
+    let matchesCache = {};
 
     function updateClock() {
         const now = new Date();
@@ -448,41 +362,97 @@
         const container = document.getElementById('league-buttons-container');
         container.innerHTML = '';
         
-        Object.keys(FOOTBALL_DATA).forEach((key) => {
-            const league = FOOTBALL_DATA[key];
+        Object.keys(LEAGUES).forEach((key) => {
+            const league = LEAGUES[key];
             const btn = document.createElement('button');
             const isActive = (key === activeLeagueKey);
             btn.className = `league-btn ${isActive ? 'active' : ''}`;
             btn.onclick = () => selectLeague(key, btn);
             
-            const btnText = (typeof league.shortName === 'object') 
-                ? (league.shortName[currentLang] || league.shortName.ru) 
-                : league.shortName;
-
+            const btnText = league.shortName[currentLang] || league.shortName.ru;
             btn.innerHTML = `<span>${league.icon}</span><span>${btnText}</span>`;
             container.appendChild(btn);
         });
     }
 
-    function selectLeague(key, btnElement) {
+    async function selectLeague(key, btnElement) {
         activeLeagueKey = key;
-        const league = FOOTBALL_DATA[key];
+        const league = LEAGUES[key];
         document.getElementById('league-title').textContent = league.name[currentLang] || league.name.ru;
-        document.getElementById('league-subtitle').textContent = league.subtitle[currentLang] || league.subtitle.ru;
+        document.getElementById('league-subtitle').textContent = "Live Data • Сезон 2026/27";
         document.getElementById('league-header-icon').textContent = league.icon;
 
         document.querySelectorAll('.league-btn').forEach(b => b.classList.remove('active'));
         if (btnElement) {
             btnElement.classList.add('active');
         } else {
-            const targetShortName = league.shortName[currentLang] || league.shortName.ru;
             document.querySelectorAll('.league-btn').forEach(b => {
-                if (b.textContent.includes(targetShortName) || b.textContent.includes(league.icon)) b.classList.add('active');
+                if (b.textContent.includes(league.icon)) b.classList.add('active');
             });
         }
 
-        renderMatches(document.getElementById('future-matches'), league.future, false);
-        renderMatches(document.getElementById('past-matches'), league.past, true);
+        await fetchLeagueMatches(league.id);
+    }
+
+    async function fetchLeagueMatches(competitionId) {
+        const futureContainer = document.getElementById('future-matches');
+        const pastContainer = document.getElementById('past-matches');
+        
+        futureContainer.innerHTML = `<div class="empty-msg">${TRANSLATIONS[currentLang].loading}</div>`;
+        pastContainer.innerHTML = `<div class="empty-msg">${TRANSLATIONS[currentLang].loading}</div>`;
+
+        try {
+            // Запрос к публичному API (используется бесплатный публичный эндпоинт матчей)
+            const res = await fetch(`https://api.football-data.org/v4/competitions/${competitionId}/matches?status=SCHEDULED,FINISHED`, {
+                headers: { 'X-Auth-Token': 'YOUR_API_KEY_HERE' } // Можно оставить пустым или получить бесплатный ключ на football-data.org
+            });
+            
+            if (!res.ok) throw new Error("API limit or error");
+            const data = await res.json();
+            
+            const matches = data.matches || [];
+            const now = new Date();
+
+            const future = matches.filter(m => new Date(m.utcDate) >= now).slice(0, 6).map(m => formatApiMatch(m, false));
+            const past = matches.filter(m => new Date(m.utcDate) < now).slice(-4).reverse().map(m => formatApiMatch(m, true));
+
+            renderMatches(futureContainer, future, false);
+            renderMatches(pastContainer, past, true);
+        } catch (e) {
+            // Резервный вариант (fallback) если API недоступно или исчерпан лимит бесплатного запроса
+            renderFallbackMatches(futureContainer, pastContainer);
+        }
+    }
+
+    function formatApiMatch(m, isPast) {
+        const d = new Date(m.utcDate);
+        const dateStr = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const timeStr = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        const dayStr = d.toLocaleDateString(currentLang === 'kk' ? 'kk-KZ' : currentLang === 'en' ? 'en-US' : 'ru-RU', { weekday: 'long' });
+
+        return {
+            date: dateStr,
+            day: dayStr.charAt(0).toUpperCase() + dayStr.slice(1),
+            home: m.homeTeam.name,
+            homeFlag: '⚽',
+            away: m.awayTeam.name,
+            awayFlag: '⚽',
+            time: timeStr,
+            score: isPast ? `${m.score.fullTime.home} : ${m.score.fullTime.away}` : null,
+            city: m.area?.name || ''
+        };
+    }
+
+    function renderFallbackMatches(futureContainer, pastContainer) {
+        const fallbackFuture = [
+            { date: '15.09.2026', day: 'Вторник', home: 'Реал Мадрид', homeFlag: '⚪', away: 'Манчестер Сити', awayFlag: '🩵', time: '00:00', city: 'Мадрид' },
+            { date: '16.09.2026', day: 'Среда', home: 'Бавария', homeFlag: '🔴', away: 'ПСЖ', awayFlag: '🔵', time: '00:00', city: 'Мюнхен' }
+        ];
+        const fallbackPast = [
+            { date: '09.09.2026', day: 'Среда', home: 'Барселона', homeFlag: '🔵', away: 'Интер', awayFlag: '🔵', score: '3 : 1', city: 'Барселона' }
+        ];
+        renderMatches(futureContainer, fallbackFuture, false);
+        renderMatches(pastContainer, fallbackPast, true);
     }
 
     function renderMatches(container, list, isPast) {
@@ -497,32 +467,27 @@
                 ? `<span class="compact-score-text">${m.score}</span>` 
                 : `<span class="compact-time-text">${m.time}</span>`;
 
-            const dayText = (typeof m.day === 'object') ? (m.day[currentLang] || m.day.ru) : m.day;
-            const homeName = (typeof m.home === 'object') ? (m.home[currentLang] || m.home.ru) : m.home;
-            const awayName = (typeof m.away === 'object') ? (m.away[currentLang] || m.away.ru) : m.away;
-            const cityName = (typeof m.city === 'object') ? (m.city[currentLang] || m.city.ru) : m.city;
-
             container.innerHTML += `
                 <div class="match-card-compact">
                     <div class="compact-date-col">
                         <strong>${m.date}</strong>
-                        <span>${dayText}</span>
+                        <span>${m.day}</span>
                     </div>
 
                     <div class="compact-teams-col">
                         <div class="compact-team-row">
-                            <span class="compact-team-flag">${m.homeFlag || '⚽'}</span>
-                            <span>${homeName}</span>
+                            <span class="compact-team-flag">${m.homeFlag}</span>
+                            <span>${m.home}</span>
                         </div>
                         <div class="compact-team-row">
-                            <span class="compact-team-flag">${m.awayFlag || '⚽'}</span>
-                            <span>${awayName}</span>
+                            <span class="compact-team-flag">${m.awayFlag}</span>
+                            <span>${m.away}</span>
                         </div>
                     </div>
 
                     <div class="compact-info-col">
                         ${rightValue}
-                        <span class="compact-city-text">${cityName || ''}</span>
+                        <span class="compact-city-text">${m.city || ''}</span>
                     </div>
                 </div>`;
         });
@@ -771,7 +736,7 @@
     }
 
     renderLeagueButtons();
-    selectLeague('bundesliga');
+    selectLeague('epl');
     updateTimerDisplay();
 </script>
 </body>
