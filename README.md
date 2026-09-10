@@ -1,3 +1,4 @@
+<img width="828" height="1395" alt="IMG_2404" src="https://github.com/user-attachments/assets/6324fe87-945e-4215-8658-4758ec1f3c0a" />
 
 README.md
 RU:
