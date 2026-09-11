@@ -314,7 +314,7 @@
         ligue1: { espn: 'fra.1', icon: "🇫🇷", name: { ru: "Французская Лига 1", kk: "Франция Лига 1", en: "French Ligue 1" }, shortName: { ru: "Лига 1", kk: "Лига 1", en: "Ligue 1" } },
         eredivisie: { espn: 'ned.1', icon: "🇳🇱", name: { ru: "Голландская Эредивизи", kk: "Нидерланды Эредивизиесі", en: "Dutch Eredivisie" }, shortName: { ru: "Эредивизи", kk: "Эредивизи", en: "Eredivisie" } },
         kpl: { source: 'thesportsdb-league', tsdbId: 4649, icon: "🇰🇿", name: { ru: "Премьер-лига Казахстана", kk: "Қазақстан Премьер-лигасы", en: "Kazakhstan Premier League" }, shortName: { ru: "КПЛ", kk: "ҚПЛ", en: "KPL" } },
-        natkaz: { source: 'thesportsdb-team', icon: "🦅", name: { ru: "Сборная Казахстана", kk: "Қазақстан құрамасы", en: "Kazakhstan National Team" }, shortName: { ru: "Сборная РК", kk: "ҚР құрамасы", en: "Kazakhstan NT" } }
+        natkaz: { source: 'espn-team', espnSlugs: ['fifa.worldq.uefa', 'uefa.nations', 'fifa.friendly'], teamFilter: 'Kazakhstan', icon: "🦅", name: { ru: "Сборная Казахстана", kk: "Қазақстан құрамасы", en: "Kazakhstan National Team" }, shortName: { ru: "Сборная РК", kk: "ҚР құрамасы", en: "Kazakhstan NT" } }
     };
 
     let activeLeagueKey = 'epl';
@@ -429,10 +429,8 @@
 
             if (league.source === 'thesportsdb-league') {
                 ({ future, past } = await fetchThesportsdbLeague(league.tsdbId));
-            } else if (league.source === 'thesportsdb-team') {
-                const teamId = await getKazakhstanTeamId();
-                if (!teamId) throw new Error('Kazakhstan team not found in TheSportsDB');
-                ({ future, past } = await fetchThesportsdbTeam(teamId));
+            } else if (league.source === 'espn-team') {
+                ({ future, past } = await fetchEspnTeamMatches(league.espnSlugs, league.teamFilter));
             } else {
                 ({ future, past } = await fetchEspnLeague(league.espn));
             }
@@ -487,7 +485,28 @@
         return { future, past };
     }
 
-    // TheSportsDB — бесплатный API без ключа (демо-ключ 3), используется для КПЛ и сборной Казахстана,
+    // Для сборной (её нет как отдельной "лиги") — берём несколько турниров ESPN,
+    // где может играть сборная (отборочный ЧМ, Лига наций, товарищеские матчи),
+    // и оставляем только матчи с участием нужной команды. У ESPN нет лимита в 1 матч,
+    // в отличие от TheSportsDB, поэтому здесь видно сразу все найденные игры.
+    async function fetchEspnTeamMatches(espnSlugs, teamName) {
+        let future = [];
+        let past = [];
+
+        for (const slug of espnSlugs) {
+            try {
+                const { future: f, past: p } = await fetchEspnLeague(slug);
+                future = future.concat(f.filter(m => m.home.includes(teamName) || m.away.includes(teamName)));
+                past = past.concat(p.filter(m => m.home.includes(teamName) || m.away.includes(teamName)));
+            } catch (e) { /* пропускаем конкретный турнир, если запрос не удался */ }
+        }
+
+        future.sort((a, b) => a._sortDate - b._sortDate);
+        past.sort((a, b) => b._sortDate - a._sortDate);
+        return { future, past };
+    }
+
+    // TheSportsDB — бесплатный API без ключа (демо-ключ 3), используется только для КПЛ,
     // которых нет в покрытии ESPN.
     // ВАЖНО: eventsnextleague.php / eventspastleague.php на бесплатном ключе отдают только 1 матч,
     // а eventsseason.php обрезается до 15 матчей и может не доходить до текущих туров.
@@ -560,34 +579,6 @@
 
         future.sort((a, b) => a._sortDate - b._sortDate);
         past.sort((a, b) => b._sortDate - a._sortDate);
-        return { future, past };
-    }
-
-    let kazTeamIdCache = null;
-    async function getKazakhstanTeamId() {
-        if (kazTeamIdCache) return kazTeamIdCache;
-        const res = await fetch('https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=Kazakhstan');
-        if (!res.ok) throw new Error('HTTP error (team search)');
-        const data = await res.json();
-        const teams = data.teams || [];
-        const exact = teams.find(t => t.strSport === 'Soccer' && t.strTeam === 'Kazakhstan');
-        const anyMatch = teams.find(t => t.strSport === 'Soccer' && (t.strTeam || '').toLowerCase() === 'kazakhstan');
-        kazTeamIdCache = (exact || anyMatch)?.idTeam || null;
-        return kazTeamIdCache;
-    }
-
-    async function fetchThesportsdbTeam(teamId) {
-        const [nextRes, pastRes] = await Promise.all([
-            fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsnext.php?id=${teamId}`),
-            fetch(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${teamId}`)
-        ]);
-        if (!nextRes.ok || !pastRes.ok) throw new Error('HTTP error (TheSportsDB)');
-
-        const nextData = await nextRes.json();
-        const pastData = await pastRes.json();
-
-        const future = (nextData.events || []).map(formatSportsDbMatch).sort((a, b) => a._sortDate - b._sortDate);
-        const past = (pastData.events || []).map(formatSportsDbMatch).sort((a, b) => b._sortDate - a._sortDate);
         return { future, past };
     }
 
@@ -755,10 +746,13 @@
         document.getElementById('floatingStatus').textContent = isRunning ? '▶' : '⏸';
     }
 
+    let oneMinuteWarningGiven = false;
+
     function setTimerMinutes(mins) {
         const m = parseInt(mins) || 1;
         totalSeconds = m * 60;
         remainingSeconds = totalSeconds;
+        oneMinuteWarningGiven = false;
         document.getElementById('customMinutes').value = m;
         pauseTimer();
         stopWhistleSound();
@@ -769,6 +763,7 @@
         if (isRunning) return;
         stopWhistleSound();
         initAudio();
+        unlockSpeechSynthesis();
 
         try {
             if ('wakeLock' in navigator) {
@@ -784,6 +779,10 @@
             if (remainingSeconds > 0) {
                 remainingSeconds--;
                 updateTimerDisplay();
+                if (remainingSeconds === 60 && !oneMinuteWarningGiven) {
+                    oneMinuteWarningGiven = true;
+                    speakOneMinuteLeft();
+                }
             } else {
                 pauseTimer();
                 playWhistleSound30Sec();
@@ -806,46 +805,13 @@
         pauseTimer();
         stopWhistleSound();
         remainingSeconds = totalSeconds;
+        oneMinuteWarningGiven = false;
         updateTimerDisplay();
     }
 
     let audioCtx = null;
     let whistleLoopTimeout = null;
     let whistleGlobalTimeout = null;
-
-    function generateVoiceAudioBuffer() {
-        if (!audioCtx) return null;
-        const sampleRate = audioCtx.sampleRate;
-        const duration = 1.4;
-        const buffer = audioCtx.createBuffer(1, sampleRate * duration, sampleRate);
-        const data = buffer.getChannelData(0);
-
-        for (let i = 0; i < buffer.length; i++) {
-            const t = i / sampleRate;
-            let sample = 0;
-
-            if (t > 0.05 && t < 0.55) {
-                const env = Math.sin((t - 0.05) / 0.5 * Math.PI);
-                const pitch = 130 - (t * 20);
-                const noise = (Math.random() * 2 - 1) * 0.15;
-                const voice = Math.sin(2 * Math.PI * pitch * t) + 0.5 * Math.sin(2 * Math.PI * (pitch * 2) * t);
-                const formant = Math.sin(2 * Math.PI * 800 * t) * 0.4 + Math.sin(2 * Math.PI * 1200 * t) * 0.3;
-                sample = (voice * 0.5 + formant * 0.4 + noise) * env;
-            }
-
-            if (t > 0.65 && t < 1.25) {
-                const env = Math.sin((t - 0.65) / 0.6 * Math.PI);
-                const pitch = 125 - ((t - 0.65) * 15);
-                const noise = (Math.random() * 2 - 1) * 0.25;
-                const voice = Math.sin(2 * Math.PI * pitch * t) + 0.4 * Math.sin(2 * Math.PI * (pitch * 2) * t);
-                const formant = Math.sin(2 * Math.PI * 600 * t) * 0.3 + Math.sin(2 * Math.PI * 2200 * t) * 0.5;
-                sample = (voice * 0.4 + formant * 0.4 + noise * 0.2) * env;
-            }
-
-            data[i] = sample * 0.7;
-        }
-        return buffer;
-    }
 
     function initAudio() {
         if (!audioCtx) {
@@ -893,21 +859,73 @@
         lfo.stop(startTime + duration);
     }
 
-    function playAnnouncerVoice(startTime) {
-        if (!audioCtx) return;
-        const voiceBuffer = generateVoiceAudioBuffer();
-        if (!voiceBuffer) return;
+    // Настоящая речь через встроенный в браузер синтезатор (Web Speech API) —
+    // звучит один раз за серию свистков, а не в фейковом шумовом виде
+    // "Разблокировка" речевого синтезатора: на iOS Safari первый вызов speak() должен
+    // происходить строго внутри настоящего касания пользователя. Мы делаем это здесь —
+    // тихой, почти беззвучной фразой — чтобы более поздний вызов speakFinalWhistle()
+    // из setTimeout (уже не касание, а таймер) сработал нормально.
+    function unlockSpeechSynthesis() {
+        try {
+            if (!('speechSynthesis' in window)) return;
+            const unlockUtterance = new SpeechSynthesisUtterance(' ');
+            unlockUtterance.volume = 0;
+            window.speechSynthesis.speak(unlockUtterance);
+        } catch (e) { /* Web Speech API недоступен — тихо пропускаем */ }
+    }
 
-        const source = audioCtx.createBufferSource();
-        source.buffer = voiceBuffer;
+    // Список голосов на iOS подгружается асинхронно — кешируем и обновляем по событию
+    let cachedVoices = [];
+    function refreshVoiceList() {
+        if ('speechSynthesis' in window) {
+            cachedVoices = window.speechSynthesis.getVoices();
+        }
+    }
+    refreshVoiceList();
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = refreshVoiceList;
+    }
 
-        const gainNode = audioCtx.createGain();
-        gainNode.gain.setValueAtTime(1.0, startTime);
+    // Ищем англоязычный мужской голос среди установленных на устройстве
+    // (имена голосов на iOS/Safari — Daniel, Fred, Aaron, Arthur, Gordon и т.п.)
+    function pickMaleEnglishVoice() {
+        if (!cachedVoices.length) refreshVoiceList();
+        const maleNames = ['daniel', 'fred', 'aaron', 'arthur', 'gordon', 'oliver', 'albert', 'bruce', 'rocko', 'nathan', 'ralph', 'reed', 'eddy', 'thomas'];
+        const englishVoices = cachedVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+        let match = englishVoices.find(v => maleNames.some(name => v.name.toLowerCase().includes(name)));
+        if (!match) match = englishVoices.find(v => v.name.toLowerCase().includes('male'));
+        if (!match) match = englishVoices[0];
+        return match || null;
+    }
 
-        source.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
+    function speakFinalWhistle() {
+        try {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance('Final whistle!');
+            utterance.lang = 'en-US';
+            utterance.rate = 0.95;
+            utterance.pitch = 0.85;
+            utterance.volume = 1;
+            const voice = pickMaleEnglishVoice();
+            if (voice) utterance.voice = voice;
+            window.speechSynthesis.speak(utterance);
+        } catch (e) { /* Web Speech API недоступен — тихо пропускаем */ }
+    }
 
-        source.start(startTime);
+    function speakOneMinuteLeft() {
+        try {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance('One minute left!');
+            utterance.lang = 'en-US';
+            utterance.rate = 0.95;
+            utterance.pitch = 0.85;
+            utterance.volume = 1;
+            const voice = pickMaleEnglishVoice();
+            if (voice) utterance.voice = voice;
+            window.speechSynthesis.speak(utterance);
+        } catch (e) { /* Web Speech API недоступен — тихо пропускаем */ }
     }
 
     function playTripleWhistleSequence() {
@@ -917,7 +935,6 @@
         playSingleWhistleBlast(now, 0.25);
         playSingleWhistleBlast(now + 0.4, 0.25);
         playSingleWhistleBlast(now + 0.8, 0.85);
-        playAnnouncerVoice(now + 1.75);
     }
 
     function playWhistleSound30Sec() {
@@ -926,6 +943,7 @@
 
         document.getElementById('stopWhistleBtn').style.display = 'block';
         playTripleWhistleSequence();
+        setTimeout(speakFinalWhistle, 1750); // произносится один раз, после серии свистков
 
         let count = 0;
         whistleLoopTimeout = setInterval(() => {
@@ -950,6 +968,9 @@
         if (whistleGlobalTimeout) {
             clearTimeout(whistleGlobalTimeout);
             whistleGlobalTimeout = null;
+        }
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
         }
         document.getElementById('stopWhistleBtn').style.display = 'none';
     }
