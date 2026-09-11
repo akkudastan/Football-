@@ -458,8 +458,8 @@
 
     async function fetchEspnLeague(espnSlug) {
         const today = new Date();
-        const start = new Date(today); start.setDate(start.getDate() - 21);
-        const end = new Date(today); end.setDate(end.getDate() + 21);
+        const start = new Date(today); start.setDate(start.getDate() - 30);
+        const end = new Date(today); end.setDate(end.getDate() + 45);
         const fmt = (d) => d.toISOString().slice(0, 10).replace(/-/g, '');
 
         const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${espnSlug}/scoreboard?dates=${fmt(start)}-${fmt(end)}&limit=200`;
