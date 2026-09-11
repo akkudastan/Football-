@@ -747,12 +747,14 @@
     }
 
     let oneMinuteWarningGiven = false;
+    let timerEndTimestamp = null; // реальная метка времени окончания — не зависит от тиков в фоне
 
     function setTimerMinutes(mins) {
         const m = parseInt(mins) || 1;
         totalSeconds = m * 60;
         remainingSeconds = totalSeconds;
         oneMinuteWarningGiven = false;
+        timerEndTimestamp = null;
         document.getElementById('customMinutes').value = m;
         pauseTimer();
         stopWhistleSound();
@@ -773,22 +775,39 @@
 
         isRunning = true;
         document.getElementById('startBtn').style.opacity = '0.5';
+        // Считаем от реальной метки времени, а не от количества сработавших тиков —
+        // тики setInterval в фоне (свёрнутое приложение) на iOS ненадёжны и могут не выполняться
+        timerEndTimestamp = Date.now() + remainingSeconds * 1000;
         updateTimerDisplay();
 
-        timerInterval = setInterval(() => {
-            if (remainingSeconds > 0) {
-                remainingSeconds--;
-                updateTimerDisplay();
-                if (remainingSeconds === 60 && !oneMinuteWarningGiven) {
-                    oneMinuteWarningGiven = true;
-                    speakOneMinuteLeft();
-                }
-            } else {
-                pauseTimer();
-                playWhistleSound30Sec();
-            }
-        }, 1000);
+        timerInterval = setInterval(tickTimer, 1000);
     }
+
+    function tickTimer() {
+        if (!isRunning || timerEndTimestamp === null) return;
+
+        remainingSeconds = Math.max(0, Math.round((timerEndTimestamp - Date.now()) / 1000));
+        updateTimerDisplay();
+
+        if (remainingSeconds <= 60 && remainingSeconds > 0 && !oneMinuteWarningGiven) {
+            oneMinuteWarningGiven = true;
+            speakOneMinuteLeft();
+        }
+
+        if (remainingSeconds <= 0) {
+            pauseTimer();
+            playWhistleSound30Sec();
+        }
+    }
+
+    // На iOS/Safari таймеры в свёрнутой вкладке могут не выполняться вовремя.
+    // Как только страница снова становится видимой — пересчитываем оставшееся время
+    // от реальной метки timerEndTimestamp: если время уже истекло, свисток проигрывается сразу.
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && isRunning) {
+            tickTimer();
+        }
+    });
 
     function pauseTimer() {
         isRunning = false;
@@ -806,6 +825,7 @@
         stopWhistleSound();
         remainingSeconds = totalSeconds;
         oneMinuteWarningGiven = false;
+        timerEndTimestamp = null;
         updateTimerDisplay();
     }
 
